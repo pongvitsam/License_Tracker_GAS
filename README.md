@@ -22,4 +22,4 @@ npm run build:ghpages
 git -C ..\License_Tracker_GAS add -A && git commit -m "Update gh-pages" && git push
 ```
 
-Build stamp: 2026-05-31T12:00:00+07:00-ghpages-rpc
+Build stamp: 2026-05-31T14:30:00+07:00-perf-fast-load

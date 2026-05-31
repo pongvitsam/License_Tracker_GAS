@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="dns-prefetch" href="https://script.googleusercontent.com">
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <title>License tracker | ระบบบริหารใบอนุญาต</title>
@@ -470,7 +472,7 @@
             </button>
           </div>
           <div class="mt-5 text-[11px] text-slate-500 text-center">
-            Build: <span id="pk2-build-stamp" class="font-bold text-slate-700">2026-05-31T12:00:00+07:00-ghpages-rpc</span>
+            Build: <span id="pk2-build-stamp" class="font-bold text-slate-700">2026-05-31T14:30:00+07:00-perf-fast-load</span>
           </div>
         </div>
       </div>
@@ -798,29 +800,56 @@
   <script src="config.js"></script>
 <script>
 (function() {
+  var inflight = {};
+  function rpcKey(method, args) {
+    try { return method + ':' + JSON.stringify(args || []); } catch (e) { return method; }
+  }
+  function parseRpcResponse(t) {
+    var d;
+    try { d = JSON.parse(t); } catch (e) { throw new Error('API response ไม่ใช่ JSON'); }
+    return d;
+  }
   function callRpc(method, args, onSuccess, onFailure) {
     var api = window.PK2_GAS_EXEC_URL || '';
     if (!api) {
       if (onFailure) onFailure(new Error('ตั้งค่า PK2_GAS_EXEC_URL ใน config.js'));
       return;
     }
-    fetch(api, {
+    var key = rpcKey(method, args);
+    if (inflight[key]) {
+      inflight[key].then(function(d) {
+        if (d && d.ok) { if (onSuccess) onSuccess(d.result); }
+        else if (onFailure) onFailure(new Error(d && d.error ? String(d.error) : 'RPC failed'));
+      }).catch(function(err) { if (onFailure) onFailure(err); });
+      return;
+    }
+    var p = fetch(api, {
       method: 'POST',
       redirect: 'follow',
+      keepalive: true,
       body: JSON.stringify({ action: 'rpc', method: method, args: args || [] }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     })
       .then(function(r) { return r.text(); })
-      .then(function(t) {
-        var d;
-        try { d = JSON.parse(t); } catch (e) { throw new Error('API response ไม่ใช่ JSON'); }
-        if (d && d.ok) {
-          if (onSuccess) onSuccess(d.result);
-        } else if (onFailure) {
-          onFailure(new Error(d && d.error ? String(d.error) : 'RPC failed'));
-        }
-      })
-      .catch(function(err) { if (onFailure) onFailure(err); });
+      .then(function(t) { return parseRpcResponse(t); })
+      .finally(function() { delete inflight[key]; });
+    inflight[key] = p;
+    p.then(function(d) {
+      if (d && d.ok) { if (onSuccess) onSuccess(d.result); }
+      else if (onFailure) onFailure(new Error(d && d.error ? String(d.error) : 'RPC failed'));
+    }).catch(function(err) { if (onFailure) onFailure(err); });
+  }
+  function warmupGasRpc_() {
+    var api = window.PK2_GAS_EXEC_URL;
+    if (!api || window.__pk2GasWarmed) return;
+    window.__pk2GasWarmed = true;
+    var pingUrl = api + (api.indexOf('?') >= 0 ? '&' : '?') + 'ping=1';
+    fetch(pingUrl, { method: 'GET', mode: 'cors', credentials: 'omit', keepalive: true }).catch(function() {});
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', warmupGasRpc_);
+  } else {
+    warmupGasRpc_();
   }
   var createRunner = function(success, failure) {
     var runner = {
@@ -843,7 +872,7 @@
 
 <script>
 const APP_BRAND_NAME = 'License tracker';
-const state = { token: localStorage.getItem('pk2_token') || '', user: null, isAuthenticated: false, settings: {}, departments: [], licenseTypes: [], projects: [], companies: [], users: [], tracking: [], dashboard: { total: 0, processing: 0, warning: 0, expired: 0, urgentTasks: [], chartData: null, upcomingCalendar: [] }, dashboardDetailsLoaded: false, coreLoading: false, projectsLoaded: false, trackingLoaded: false, companiesLoaded: false, settingsPageLoaded: false, usersLoaded: false, listRevision: 0, chartStatus: null, chartDept: null, projectPage: 1, projectPageSize: 10, projectFilterTimer: null, notifyTimerId: null, warmPrefetchTimer: null, warmPrefetchInFlight: false, loginPublicPreloadStarted: false, loginPublicPreloadTimer: null, loginAuthPrewarmTimer: null, loginAuthPrewarmInFlight: false, loginAuthPrewarmToken: '', loginAuthPrewarmData: null, authPreloadKickoffTimer: null, settingsPrefetchInFlight: false, usersPrefetchInFlight: false, notifyPrefetchInFlight: false, resumeSessionInFlight: false, bootstrapInFlight: false, dashboardHydrateInFlight: false, dashboardHydrated: false, dashboardSummaryRevalidateInFlight: false, loginFlowStartedAt: 0, lastDashboardSignature: '', projectsInFlight: false, trackingInFlight: false, companiesInFlight: false, dashboardDetailsInFlight: false, postLoginLoadActive: false, postLoginLoadDone: { bootstrap: false, warm: false, settings: false }, postLoginLoadTimeoutId: null };
+const state = { token: localStorage.getItem('pk2_token') || '', user: null, isAuthenticated: false, settings: {}, departments: [], licenseTypes: [], projects: [], companies: [], users: [], tracking: [], dashboard: { total: 0, processing: 0, warning: 0, expired: 0, urgentTasks: [], chartData: null, upcomingCalendar: [] }, dashboardDetailsLoaded: false, coreLoading: false, projectsLoaded: false, trackingLoaded: false, companiesLoaded: false, settingsPageLoaded: false, usersLoaded: false, listRevision: 0, chartStatus: null, chartDept: null, projectPage: 1, projectPageSize: 10, projectFilterTimer: null, notifyTimerId: null, warmPrefetchTimer: null, warmPrefetchInFlight: false, loginPublicPreloadStarted: false, loginPublicPreloadTimer: null, loginAuthPrewarmTimer: null, loginAuthPrewarmInFlight: false, loginAuthPrewarmToken: '', loginAuthPrewarmData: null, authPreloadKickoffTimer: null, settingsPrefetchInFlight: false, usersPrefetchInFlight: false, notifyPrefetchInFlight: false, resumeSessionInFlight: false, bootstrapInFlight: false, postLoginBundleInFlight: false, dashboardHydrateInFlight: false, dashboardHydrated: false, dashboardSummaryRevalidateInFlight: false, loginFlowStartedAt: 0, lastDashboardSignature: '', projectsInFlight: false, trackingInFlight: false, companiesInFlight: false, dashboardDetailsInFlight: false, postLoginLoadActive: false, postLoginLoadDone: { bootstrap: false, warm: false, settings: false }, postLoginLoadTimeoutId: null, gasWarmupStarted: false };
 const DASH_SUMMARY_SNAPSHOT_KEY = 'pk2_dash_summary_snapshot_v1';
 const perf = {
   markStart: function(name) {
@@ -992,13 +1021,14 @@ function pk2Boot() {
   if (state.notifyTimerId) clearInterval(state.notifyTimerId);
   state.notifyTimerId = null;
   if (state.token) {
+    scheduleLoginAuthPrewarm_();
     startSavedSessionResume_(true);
     return;
   }
   state.isAuthenticated = false;
   showLoginScreen_();
   scheduleLoginPublicPreload_();
-  scheduleLoginAuthPrewarm_();
+  warmupGasConnection_();
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', pk2Boot);
@@ -1092,12 +1122,137 @@ function scheduleLoginPublicPreload_() {
     preloadUrlOnce_('https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css', 'style', true);
     prefetchUrlOnce_('https://cdn.jsdelivr.net/npm/flatpickr', 'script', true);
     prefetchUrlOnce_('https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js', 'script', true);
+    warmupGasConnection_();
   };
   if (typeof requestIdleCallback !== 'undefined') {
-    state.loginPublicPreloadTimer = setTimeout(() => requestIdleCallback(run, { timeout: 1200 }), 0);
+    state.loginPublicPreloadTimer = setTimeout(() => requestIdleCallback(run, { timeout: 800 }), 0);
   } else {
-    state.loginPublicPreloadTimer = setTimeout(run, 80);
+    state.loginPublicPreloadTimer = setTimeout(run, 50);
   }
+}
+
+/** อุ่น GAS Web App (GitHub Pages) — ลด cold start ครั้งแรกหลังล็อกอิน */
+function warmupGasConnection_() {
+  var api = typeof window !== 'undefined' ? window.PK2_GAS_EXEC_URL : '';
+  if (!api || state.gasWarmupStarted) return;
+  state.gasWarmupStarted = true;
+  var pingUrl = api + (api.indexOf('?') >= 0 ? '&' : '?') + 'ping=1';
+  fetch(pingUrl, { method: 'GET', mode: 'cors', credentials: 'omit', keepalive: true }).catch(function () {});
+}
+
+function storeLoginAuthPrewarmData_(pack) {
+  if (!pack || pack.ok !== true || !pack.bootstrap || !pack.bootstrap.user) return;
+  var boot = pack.bootstrap;
+  state.loginAuthPrewarmToken = state.token;
+  state.loginAuthPrewarmData = {
+    user: boot.user,
+    settings: boot.settings || {},
+    departments: boot.departments || [],
+    licenseTypes: Array.isArray(boot.licenseTypes) ? boot.licenseTypes : [],
+    dashboard: boot.dashboard || null,
+    warm: pack.warm || null,
+    settingsBundle: pack.settingsBundle || null
+  };
+}
+
+function applyPostLoginPack_(pack) {
+  if (!pack || pack.ok !== true || !pack.bootstrap) return false;
+  var boot = pack.bootstrap;
+  if (!boot.user) return false;
+  state.user = boot.user;
+  state.isAuthenticated = true;
+  state.settings = boot.settings || state.settings || {};
+  state.departments = boot.departments || [];
+  state.licenseTypes = Array.isArray(boot.licenseTypes) ? boot.licenseTypes : [];
+  if (boot.dashboard) {
+    state.dashboard = Object.assign({}, state.dashboard || {}, boot.dashboard);
+    state.dashboardHydrated = true;
+    setDashboardSummarySnapshot_(state.dashboard);
+    state.lastDashboardSignature = dashboardSignature_(state.dashboard);
+  }
+  if (pack.settingsBundle && typeof pack.settingsBundle === 'object') {
+    var sb = pack.settingsBundle;
+    state.settings = sb.settings || state.settings;
+    state.departments = sb.departments || state.departments;
+    if (Array.isArray(sb.licenseTypes)) state.licenseTypes = sb.licenseTypes;
+    state.settingsPageLoaded = true;
+  } else if (boot.settings && typeof boot.settings === 'object') {
+    state.settingsPageLoaded = true;
+  }
+  if (pack.warm && pack.warm.ok === true) applyWarmBundle_(pack.warm);
+  setPostLoginLoadStep_('bootstrap', true);
+  if (state.settingsPageLoaded) setPostLoginLoadStep_('settings', true);
+  return true;
+}
+
+function finishPostLoginUi_() {
+  if (state.resumeSessionInFlight) {
+    state.resumeSessionInFlight = false;
+    setContinueSessionSubmitting_(false);
+    setLoginBootLoading_(false);
+  }
+  showAppScreen_();
+  setUserUI();
+  renderDepartmentFilter();
+  renderDashboardUI();
+  syncPostLoginLoadFromState_();
+  closePostLoginLoadingSwal_();
+  perf.log('login->dashboardHydrated', Date.now() - (state.loginFlowStartedAt || Date.now()));
+}
+
+function loadPostLoginBundle_(retryAttempt) {
+  if (!state.token) return;
+  if (state.loginAuthPrewarmToken === state.token && state.loginAuthPrewarmData && state.loginAuthPrewarmData.user) {
+    applyPostLoginPack_({
+      ok: true,
+      bootstrap: {
+        user: state.loginAuthPrewarmData.user,
+        settings: state.loginAuthPrewarmData.settings,
+        departments: state.loginAuthPrewarmData.departments,
+        licenseTypes: state.loginAuthPrewarmData.licenseTypes,
+        dashboard: state.loginAuthPrewarmData.dashboard,
+        dashboardDeferred: true
+      },
+      warm: state.loginAuthPrewarmData.warm,
+      settingsBundle: state.loginAuthPrewarmData.settingsBundle
+    });
+    finishPostLoginUi_();
+    kickoffAuthPreloads_();
+    return;
+  }
+  if (state.postLoginBundleInFlight) return;
+  state.postLoginBundleInFlight = true;
+  var attempt = typeof retryAttempt === 'number' ? retryAttempt : 0;
+  var t0 = perf.markStart('loadPostLoginBundle');
+  google.script.run
+    .withSuccessHandler(function (pack) {
+      state.postLoginBundleInFlight = false;
+      if (!applyPostLoginPack_(pack)) {
+        if (attempt < 2) {
+          setTimeout(function () {
+            loadPostLoginBundle_(attempt + 1);
+          }, 350);
+          return;
+        }
+        bootstrapPublic(0);
+        return;
+      }
+      storeLoginAuthPrewarmData_(pack);
+      finishPostLoginUi_();
+      kickoffAuthPreloads_();
+      perf.log('loadPostLoginBundle', perf.markEnd('loadPostLoginBundle', t0));
+    })
+    .withFailureHandler(function () {
+      state.postLoginBundleInFlight = false;
+      if (attempt < 1) {
+        setTimeout(function () {
+          loadPostLoginBundle_(attempt + 1);
+        }, 400);
+        return;
+      }
+      bootstrapPublic(0);
+    })
+    .getLoginPrewarmBundle(state.token);
 }
 
 function scheduleLoginAuthPrewarm_() {
@@ -1108,33 +1263,23 @@ function scheduleLoginAuthPrewarm_() {
     state.loginAuthPrewarmInFlight = true;
     const t0 = perf.markStart('loginAuthPrewarm');
     google.script.run
-      .withSuccessHandler((pack) => {
+      .withSuccessHandler(function (pack) {
         state.loginAuthPrewarmInFlight = false;
         if (!pack || pack.ok !== true || !pack.bootstrap || !pack.bootstrap.user) return;
-        var boot = pack.bootstrap;
-        state.loginAuthPrewarmToken = state.token;
-        state.loginAuthPrewarmData = {
-          user: boot.user,
-          settings: boot.settings || {},
-          departments: boot.departments || [],
-          licenseTypes: Array.isArray(boot.licenseTypes) ? boot.licenseTypes : [],
-          dashboard: boot.dashboard || null,
-          warm: pack.warm || null,
-          settingsBundle: pack.settingsBundle || null
-        };
-        if (boot.dashboard) setDashboardSummarySnapshot_(boot.dashboard);
+        storeLoginAuthPrewarmData_(pack);
+        if (pack.bootstrap.dashboard) setDashboardSummarySnapshot_(pack.bootstrap.dashboard);
+        if (state.postLoginLoadActive && state.isAuthenticated) {
+          applyPostLoginPack_(pack);
+          syncPostLoginLoadFromState_();
+        }
         perf.log('loginAuthPrewarm', perf.markEnd('loginAuthPrewarm', t0));
       })
-      .withFailureHandler(() => {
+      .withFailureHandler(function () {
         state.loginAuthPrewarmInFlight = false;
       })
       .getLoginPrewarmBundle(state.token);
   };
-  if (typeof requestIdleCallback !== 'undefined') {
-    state.loginAuthPrewarmTimer = setTimeout(() => requestIdleCallback(run, { timeout: 2500 }), 120);
-  } else {
-    state.loginAuthPrewarmTimer = setTimeout(run, 200);
-  }
+  state.loginAuthPrewarmTimer = setTimeout(run, 0);
 }
 
 async function ensureFlatpickrReady_() {
@@ -1321,13 +1466,16 @@ function preloadNotificationsData_() {
 function kickoffAuthPreloads_() {
   if (!state.token) return;
   if (state.authPreloadKickoffTimer) clearTimeout(state.authPreloadKickoffTimer);
-  state.authPreloadKickoffTimer = setTimeout(() => {
-    refreshDashboardSummarySWR_();
-    preloadSettingsBundle_();
-    prefetchWarmBundle_();
+  state.authPreloadKickoffTimer = setTimeout(function () {
+    var needsWarm = !state.projectsLoaded || !state.trackingLoaded || !state.companiesLoaded;
+    var needsSettings = !state.settingsPageLoaded;
+    var needsDetails = !state.dashboardDetailsLoaded && !state.dashboardDetailsInFlight;
+    if (!state.dashboardHydrated) refreshDashboardSummarySWR_();
+    if (needsSettings) preloadSettingsBundle_();
+    if (needsWarm) prefetchWarmBundle_();
     preloadNotificationsData_();
-    if (!state.dashboardDetailsLoaded && !state.dashboardDetailsInFlight) loadDashboardDetailsData(false);
-  }, 40);
+    if (needsDetails) loadDashboardDetailsData(false);
+  }, 16);
 }
 
 function syncLoginSessionResumeUI_() {
@@ -1364,6 +1512,11 @@ function bindLoginFormEvents_() {
         loginError.textContent = '';
       }
     });
+    if (id === 'login-username' && state.token) {
+      el.addEventListener('focus', function () {
+        scheduleLoginAuthPrewarm_();
+      }, { once: false });
+    }
   });
 }
 
@@ -1478,40 +1631,40 @@ function startSavedSessionResume_(fromBoot) {
     showLoginScreen_();
   }
   showPostLoginLoadingSwal_();
-  applySavedSessionPrewarm_();
-  syncPostLoginLoadFromState_();
-  bootstrapPublic();
+  if (applySavedSessionPrewarm_()) {
+    syncPostLoginLoadFromState_();
+    if (state.projectsLoaded && state.trackingLoaded && state.companiesLoaded) {
+      finishPostLoginUi_();
+      kickoffAuthPreloads_();
+      return;
+    }
+  }
+  loadPostLoginBundle_();
 }
 
 function applySavedSessionPrewarm_() {
-  if (state.loginAuthPrewarmToken !== state.token || !state.loginAuthPrewarmData || !state.loginAuthPrewarmData.user) return;
-  state.user = state.loginAuthPrewarmData.user;
-  state.isAuthenticated = true;
-  setDashboardLoadingState_();
-  if (state.loginAuthPrewarmData.settings) state.settings = state.loginAuthPrewarmData.settings;
-  if (Array.isArray(state.loginAuthPrewarmData.departments)) state.departments = state.loginAuthPrewarmData.departments;
-  if (Array.isArray(state.loginAuthPrewarmData.licenseTypes)) state.licenseTypes = state.loginAuthPrewarmData.licenseTypes;
-  if (state.loginAuthPrewarmData.dashboard) {
-    state.dashboard = Object.assign({}, state.dashboard, state.loginAuthPrewarmData.dashboard);
-    state.dashboardHydrated = true;
-    setDashboardSummarySnapshot_(state.dashboard);
+  if (state.loginAuthPrewarmToken !== state.token || !state.loginAuthPrewarmData || !state.loginAuthPrewarmData.user) return false;
+  var ok = applyPostLoginPack_({
+    ok: true,
+    bootstrap: {
+      user: state.loginAuthPrewarmData.user,
+      settings: state.loginAuthPrewarmData.settings,
+      departments: state.loginAuthPrewarmData.departments,
+      licenseTypes: state.loginAuthPrewarmData.licenseTypes,
+      dashboard: state.loginAuthPrewarmData.dashboard,
+      dashboardDeferred: true
+    },
+    warm: state.loginAuthPrewarmData.warm,
+    settingsBundle: state.loginAuthPrewarmData.settingsBundle
+  });
+  if (ok) {
+    showAppScreen_();
+    setUserUI();
+    renderDepartmentFilter();
+    renderDashboardUI();
+    perf.log('loginPrewarmReuse', Date.now() - (state.loginFlowStartedAt || Date.now()));
   }
-  if (state.loginAuthPrewarmData.settingsBundle && typeof state.loginAuthPrewarmData.settingsBundle === 'object') {
-    var sb = state.loginAuthPrewarmData.settingsBundle;
-    state.settings = sb.settings || state.settings;
-    state.departments = sb.departments || state.departments;
-    if (Array.isArray(sb.licenseTypes)) state.licenseTypes = sb.licenseTypes;
-    state.settingsPageLoaded = true;
-  }
-  if (state.loginAuthPrewarmData.warm && state.loginAuthPrewarmData.warm.ok === true) {
-    applyWarmBundle_(state.loginAuthPrewarmData.warm);
-  }
-  showAppScreen_();
-  setUserUI();
-  renderDepartmentFilter();
-  renderDashboardUI();
-  syncPostLoginLoadFromState_();
-  perf.log('loginPrewarmReuse', Date.now() - (state.loginFlowStartedAt || Date.now()));
+  return ok;
 }
 
 function submitLoginForm_() {
@@ -1547,10 +1700,8 @@ function submitLoginForm_() {
       renderDashboardUI();
       const shellMs = Date.now() - (state.loginFlowStartedAt || Date.now());
       perf.log('login->shellInteractive', shellMs);
-      console.info('[PK2 PERF TARGET] shellInteractive <1200ms, summaryHydrated <2500ms, detailsOnDemand <3500ms');
       scheduleLoginAuthPrewarm_();
-      kickoffAuthPreloads_();
-      bootstrapPublic();
+      loadPostLoginBundle_();
     })
     .withFailureHandler((err) => {
       setLoginSubmitting_(false);
@@ -1636,6 +1787,32 @@ function scheduleIdlePrefetchLists_() {
 
 function bootstrapPublic(retryAttempt) {
   if (state.bootstrapInFlight) return;
+  if (
+    retryAttempt === 0 &&
+    state.token &&
+    state.loginAuthPrewarmToken === state.token &&
+    state.loginAuthPrewarmData &&
+    state.loginAuthPrewarmData.user &&
+    state.loginAuthPrewarmData.warm &&
+    state.loginAuthPrewarmData.warm.ok === true
+  ) {
+    applyPostLoginPack_({
+      ok: true,
+      bootstrap: {
+        user: state.loginAuthPrewarmData.user,
+        settings: state.loginAuthPrewarmData.settings,
+        departments: state.loginAuthPrewarmData.departments,
+        licenseTypes: state.loginAuthPrewarmData.licenseTypes,
+        dashboard: state.loginAuthPrewarmData.dashboard,
+        dashboardDeferred: true
+      },
+      warm: state.loginAuthPrewarmData.warm,
+      settingsBundle: state.loginAuthPrewarmData.settingsBundle
+    });
+    finishPostLoginUi_();
+    kickoffAuthPreloads_();
+    return;
+  }
   state.bootstrapInFlight = true;
   const attempt = typeof retryAttempt === 'number' ? retryAttempt : 0;
   const t0 = perf.markStart('bootstrapPublic');
