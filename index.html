@@ -472,7 +472,7 @@
             </button>
           </div>
           <div class="mt-5 text-[11px] text-slate-500 text-center">
-            Build: <span id="pk2-build-stamp" class="font-bold text-slate-700">2026-05-31T14:30:00+07:00-perf-fast-load</span>
+            Build: <span id="pk2-build-stamp" class="font-bold text-slate-700">2026-05-31T16:00:00+07:00-tiered-load</span>
           </div>
         </div>
       </div>
@@ -872,7 +872,7 @@
 
 <script>
 const APP_BRAND_NAME = 'License tracker';
-const state = { token: localStorage.getItem('pk2_token') || '', user: null, isAuthenticated: false, settings: {}, departments: [], licenseTypes: [], projects: [], companies: [], users: [], tracking: [], dashboard: { total: 0, processing: 0, warning: 0, expired: 0, urgentTasks: [], chartData: null, upcomingCalendar: [] }, dashboardDetailsLoaded: false, coreLoading: false, projectsLoaded: false, trackingLoaded: false, companiesLoaded: false, settingsPageLoaded: false, usersLoaded: false, listRevision: 0, chartStatus: null, chartDept: null, projectPage: 1, projectPageSize: 10, projectFilterTimer: null, notifyTimerId: null, warmPrefetchTimer: null, warmPrefetchInFlight: false, loginPublicPreloadStarted: false, loginPublicPreloadTimer: null, loginAuthPrewarmTimer: null, loginAuthPrewarmInFlight: false, loginAuthPrewarmToken: '', loginAuthPrewarmData: null, authPreloadKickoffTimer: null, settingsPrefetchInFlight: false, usersPrefetchInFlight: false, notifyPrefetchInFlight: false, resumeSessionInFlight: false, bootstrapInFlight: false, postLoginBundleInFlight: false, dashboardHydrateInFlight: false, dashboardHydrated: false, dashboardSummaryRevalidateInFlight: false, loginFlowStartedAt: 0, lastDashboardSignature: '', projectsInFlight: false, trackingInFlight: false, companiesInFlight: false, dashboardDetailsInFlight: false, postLoginLoadActive: false, postLoginLoadDone: { bootstrap: false, warm: false, settings: false }, postLoginLoadTimeoutId: null, gasWarmupStarted: false };
+const state = { token: localStorage.getItem('pk2_token') || '', user: null, isAuthenticated: false, settings: {}, departments: [], licenseTypes: [], projects: [], companies: [], users: [], tracking: [], dashboard: { total: 0, processing: 0, warning: 0, expired: 0, urgentTasks: [], chartData: null, upcomingCalendar: [] }, dashboardDetailsLoaded: false, coreLoading: false, projectsLoaded: false, trackingLoaded: false, companiesLoaded: false, settingsPageLoaded: false, usersLoaded: false, listRevision: 0, chartStatus: null, chartDept: null, projectPage: 1, projectPageSize: 10, projectFilterTimer: null, notifyTimerId: null, warmPrefetchTimer: null, warmPrefetchInFlight: false, loginPublicPreloadStarted: false, loginPublicPreloadTimer: null, loginAuthPrewarmTimer: null, loginAuthPrewarmInFlight: false, loginAuthPrewarmToken: '', loginAuthPrewarmData: null, authPreloadKickoffTimer: null, settingsPrefetchInFlight: false, usersPrefetchInFlight: false, notifyPrefetchInFlight: false, notifyPrefetchScheduled: false, resumeSessionInFlight: false, bootstrapInFlight: false, postLoginBundleInFlight: false, dashboardHydrateInFlight: false, dashboardHydrated: false, dashboardSummaryRevalidateInFlight: false, loginFlowStartedAt: 0, lastDashboardSignature: '', projectsInFlight: false, trackingInFlight: false, companiesInFlight: false, dashboardDetailsInFlight: false, postLoginLoadActive: false, postLoginLoadDone: { bootstrap: false, warm: false, settings: false }, postLoginLoadTimeoutId: null, gasWarmupStarted: false };
 const DASH_SUMMARY_SNAPSHOT_KEY = 'pk2_dash_summary_snapshot_v1';
 const perf = {
   markStart: function(name) {
@@ -929,7 +929,7 @@ function postLoginLoadHtml_(currentLabel, pct) {
     '<p class="pk2-load-title">กำลังเตรียมข้อมูลให้พร้อมใช้งาน</p>' +
     '<p class="pk2-load-sub">' + postLoginLoadEsc_(currentLabel || 'กรุณารอสักครู่...') + '</p>' +
     '<div class="pk2-load-bar"><div class="pk2-load-bar-fill" style="width:' + p + '%"></div></div>' +
-    '<p class="pk2-load-hint">โหลดทุกหน้าไว้ล่วงหน้า — เปิดแท็บแล้วใช้งานได้ทันที</p>' +
+    '<p class="pk2-load-hint">โหลดสรุปก่อน — รายการโครงการ/ติดตามโหลดเบื้องหลัง</p>' +
     '</div>'
   );
 }
@@ -937,7 +937,7 @@ function postLoginLoadHtml_(currentLabel, pct) {
 function showPostLoginLoadingSwal_() {
   if (state.postLoginLoadActive) return;
   state.postLoginLoadActive = true;
-  state.postLoginLoadDone = { bootstrap: false, warm: false, settings: false };
+  state.postLoginLoadDone = { bootstrap: false, settings: false };
   if (state.postLoginLoadTimeoutId) clearTimeout(state.postLoginLoadTimeoutId);
   state.postLoginLoadTimeoutId = setTimeout(function () {
     closePostLoginLoadingSwal_(true);
@@ -961,23 +961,21 @@ function refreshPostLoginLoadingSwal_() {
   const d = state.postLoginLoadDone || {};
   let n = 0;
   if (d.bootstrap) n++;
-  if (d.warm) n++;
   if (d.settings) n++;
-  const pct = Math.round((n / 3) * 100);
+  const pct = Math.round((n / 2) * 100);
   let label = 'กำลังโหลด...';
   if (!d.bootstrap) label = 'โหลดสรุปแดชบอร์ดและข้อมูลผู้ใช้';
-  else if (!d.warm) label = 'โหลดโครงการ · ติดตาม · บริษัท';
   else if (!d.settings) label = 'โหลดการตั้งค่าและประเภทใบอนุญาต';
-  else label = 'พร้อมใช้งานแล้ว!';
+  else label = 'พร้อมใช้งาน — โหลดรายการเบื้องหลัง';
   if (typeof Swal !== 'undefined' && Swal.isVisible && Swal.isVisible()) {
     const el = Swal.getHtmlContainer();
     if (el) el.innerHTML = postLoginLoadHtml_(label, pct);
   }
-  if (d.bootstrap && d.warm && d.settings) {
+  if (d.bootstrap && d.settings) {
     setTimeout(function () {
       closePostLoginLoadingSwal_(false);
       toast('พร้อมใช้งานแล้ว', 'success');
-    }, 320);
+    }, 180);
   }
 }
 
@@ -1001,9 +999,6 @@ function closePostLoginLoadingSwal_(silent) {
 function syncPostLoginLoadFromState_() {
   if (!state.postLoginLoadActive) return;
   if (state.dashboardHydrated) setPostLoginLoadStep_('bootstrap', true);
-  if (state.projectsLoaded && state.trackingLoaded && state.companiesLoaded) {
-    setPostLoginLoadStep_('warm', true);
-  }
   if (state.settingsPageLoaded) setPostLoginLoadStep_('settings', true);
 }
 
@@ -1118,10 +1113,6 @@ function scheduleLoginPublicPreload_() {
     preloadUrlOnce_('https://cdn.jsdelivr.net/npm/sweetalert2@11', 'script', true);
     preloadUrlOnce_('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css', 'style', true);
     prefetchUrlOnce_('https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap', 'style', true);
-    preloadUrlOnce_('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js', 'script', true);
-    preloadUrlOnce_('https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css', 'style', true);
-    prefetchUrlOnce_('https://cdn.jsdelivr.net/npm/flatpickr', 'script', true);
-    prefetchUrlOnce_('https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js', 'script', true);
     warmupGasConnection_();
   };
   if (typeof requestIdleCallback !== 'undefined') {
@@ -1149,9 +1140,7 @@ function storeLoginAuthPrewarmData_(pack) {
     settings: boot.settings || {},
     departments: boot.departments || [],
     licenseTypes: Array.isArray(boot.licenseTypes) ? boot.licenseTypes : [],
-    dashboard: boot.dashboard || null,
-    warm: pack.warm || null,
-    settingsBundle: pack.settingsBundle || null
+    dashboard: boot.dashboard || null
   };
 }
 
@@ -1175,11 +1164,8 @@ function applyPostLoginPack_(pack) {
     state.settings = sb.settings || state.settings;
     state.departments = sb.departments || state.departments;
     if (Array.isArray(sb.licenseTypes)) state.licenseTypes = sb.licenseTypes;
-    state.settingsPageLoaded = true;
-  } else if (boot.settings && typeof boot.settings === 'object') {
-    state.settingsPageLoaded = true;
   }
-  if (pack.warm && pack.warm.ok === true) applyWarmBundle_(pack.warm);
+  if (boot.settings && typeof boot.settings === 'object') state.settingsPageLoaded = true;
   setPostLoginLoadStep_('bootstrap', true);
   if (state.settingsPageLoaded) setPostLoginLoadStep_('settings', true);
   return true;
@@ -1213,8 +1199,6 @@ function loadPostLoginBundle_(retryAttempt) {
         dashboard: state.loginAuthPrewarmData.dashboard,
         dashboardDeferred: true
       },
-      warm: state.loginAuthPrewarmData.warm,
-      settingsBundle: state.loginAuthPrewarmData.settingsBundle
     });
     finishPostLoginUi_();
     kickoffAuthPreloads_();
@@ -1463,18 +1447,40 @@ function preloadNotificationsData_() {
     .getInAppNotifications(state.token);
 }
 
+function scheduleNotificationsPrefetch_() {
+  if (!state.token || state.notifyPrefetchScheduled) return;
+  state.notifyPrefetchScheduled = true;
+  var run = function () {
+    preloadNotificationsData_();
+  };
+  if (typeof requestIdleCallback !== 'undefined') {
+    requestIdleCallback(run, { timeout: 8000 });
+  } else {
+    setTimeout(run, 5000);
+  }
+}
+
 function kickoffAuthPreloads_() {
   if (!state.token) return;
   if (state.authPreloadKickoffTimer) clearTimeout(state.authPreloadKickoffTimer);
   state.authPreloadKickoffTimer = setTimeout(function () {
-    var needsWarm = !state.projectsLoaded || !state.trackingLoaded || !state.companiesLoaded;
+    var needsProjects = !state.projectsLoaded;
     var needsSettings = !state.settingsPageLoaded;
     var needsDetails = !state.dashboardDetailsLoaded && !state.dashboardDetailsInFlight;
     if (!state.dashboardHydrated) refreshDashboardSummarySWR_();
     if (needsSettings) preloadSettingsBundle_();
-    if (needsWarm) prefetchWarmBundle_();
-    preloadNotificationsData_();
-    if (needsDetails) loadDashboardDetailsData(false);
+    if (needsProjects) prefetchProjectsBundle_();
+    scheduleNotificationsPrefetch_();
+    if (needsDetails) {
+      var loadDetails = function () {
+        loadDashboardDetailsData(false);
+      };
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(loadDetails, { timeout: 5000 });
+      } else {
+        setTimeout(loadDetails, 1200);
+      }
+    }
   }, 16);
 }
 
@@ -1633,11 +1639,9 @@ function startSavedSessionResume_(fromBoot) {
   showPostLoginLoadingSwal_();
   if (applySavedSessionPrewarm_()) {
     syncPostLoginLoadFromState_();
-    if (state.projectsLoaded && state.trackingLoaded && state.companiesLoaded) {
-      finishPostLoginUi_();
-      kickoffAuthPreloads_();
-      return;
-    }
+    finishPostLoginUi_();
+    kickoffAuthPreloads_();
+    return;
   }
   loadPostLoginBundle_();
 }
@@ -1653,9 +1657,7 @@ function applySavedSessionPrewarm_() {
       licenseTypes: state.loginAuthPrewarmData.licenseTypes,
       dashboard: state.loginAuthPrewarmData.dashboard,
       dashboardDeferred: true
-    },
-    warm: state.loginAuthPrewarmData.warm,
-    settingsBundle: state.loginAuthPrewarmData.settingsBundle
+    }
   });
   if (ok) {
     showAppScreen_();
@@ -1762,22 +1764,30 @@ function applyWarmBundle_(bundle) {
   syncPostLoginLoadFromState_();
 }
 
-function prefetchWarmBundle_() {
-  if (!state.token || state.warmPrefetchInFlight) return;
+/** Tier B — โหลดรายการโครงการเบื้องหลัง (ไม่รวม tracking/companies) */
+function prefetchProjectsBundle_() {
+  if (!state.token || state.warmPrefetchInFlight || state.projectsLoaded) return;
   const revAtStart = state.listRevision;
   state.warmPrefetchInFlight = true;
   google.script.run
-    .withSuccessHandler((bundle) => {
+    .withSuccessHandler((rows) => {
       state.warmPrefetchInFlight = false;
       if (revAtStart !== state.listRevision) return;
-      applyWarmBundle_(bundle);
-      setPostLoginLoadStep_('warm', true);
+      if (Array.isArray(rows)) {
+        state.projects = rows;
+        state.projectsLoaded = true;
+        const pel = document.getElementById('projects');
+        if (pel && pel.classList.contains('active')) {
+          renderProjectsTable();
+          maybeOpenProjectFromUrl();
+        }
+      }
+      syncPostLoginLoadFromState_();
     })
     .withFailureHandler(() => {
       state.warmPrefetchInFlight = false;
-      setPostLoginLoadStep_('warm', true);
     })
-    .getClientWarmBundle(state.token);
+    .getProjectsData(state.token, false);
 }
 
 /** หลัง bootstrap / รีเฟรช — bundle เดียวแทนหลาย RPC */
@@ -1792,9 +1802,7 @@ function bootstrapPublic(retryAttempt) {
     state.token &&
     state.loginAuthPrewarmToken === state.token &&
     state.loginAuthPrewarmData &&
-    state.loginAuthPrewarmData.user &&
-    state.loginAuthPrewarmData.warm &&
-    state.loginAuthPrewarmData.warm.ok === true
+    state.loginAuthPrewarmData.user
   ) {
     applyPostLoginPack_({
       ok: true,
@@ -1805,9 +1813,7 @@ function bootstrapPublic(retryAttempt) {
         licenseTypes: state.loginAuthPrewarmData.licenseTypes,
         dashboard: state.loginAuthPrewarmData.dashboard,
         dashboardDeferred: true
-      },
-      warm: state.loginAuthPrewarmData.warm,
-      settingsBundle: state.loginAuthPrewarmData.settingsBundle
+      }
     });
     finishPostLoginUi_();
     kickoffAuthPreloads_();
@@ -1885,16 +1891,10 @@ function bootstrapPublic(retryAttempt) {
     setDashboardSummarySnapshot_(state.dashboard);
     state.lastDashboardSignature = dashboardSignature_(state.dashboard);
     if (state.loginAuthPrewarmData && state.loginAuthPrewarmToken === state.token) {
-      if (state.loginAuthPrewarmData.settingsBundle) {
-        var sb2 = state.loginAuthPrewarmData.settingsBundle;
-        state.settings = sb2.settings || state.settings;
-        state.departments = sb2.departments || state.departments;
-        if (Array.isArray(sb2.licenseTypes)) state.licenseTypes = sb2.licenseTypes;
-        state.settingsPageLoaded = true;
-      }
-      if (state.loginAuthPrewarmData.warm && state.loginAuthPrewarmData.warm.ok === true) {
-        applyWarmBundle_(state.loginAuthPrewarmData.warm);
-      }
+      state.settings = state.loginAuthPrewarmData.settings || state.settings;
+      state.departments = state.loginAuthPrewarmData.departments || state.departments;
+      if (Array.isArray(state.loginAuthPrewarmData.licenseTypes)) state.licenseTypes = state.loginAuthPrewarmData.licenseTypes;
+      state.settingsPageLoaded = true;
     } else {
       invalidateSecondaryLists_();
     }
@@ -1904,9 +1904,6 @@ function bootstrapPublic(retryAttempt) {
     renderDepartmentFilter();
     renderDashboardUI();
     setPostLoginLoadStep_('bootstrap', true);
-    if (state.projectsLoaded && state.trackingLoaded && state.companiesLoaded) {
-      setPostLoginLoadStep_('warm', true);
-    }
     if (state.settingsPageLoaded) setPostLoginLoadStep_('settings', true);
     perf.log('login->dashboardHydrated', Date.now() - (state.loginFlowStartedAt || Date.now()));
     kickoffAuthPreloads_();
@@ -3918,7 +3915,10 @@ function toggleSidebarCollapse() {
 function toggleNotifyDropdown() {
   const d = document.getElementById('notify-dropdown');
   if (d) d.classList.toggle('hidden');
-  if (d && !d.classList.contains('hidden')) loadNotifyList();
+  if (d && !d.classList.contains('hidden')) {
+    refreshNotifyBadge();
+    loadNotifyList();
+  }
 }
 function loadNotifyList() {
   if (!state.token) return;
