@@ -13,9 +13,12 @@
   <title>License tracker | ระบบบริหารใบอนุญาต</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
 <script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap"></noscript>
 <style>
   /* Hard first-paint gate: never show app shell before auth */
   #login-root { display: flex; }
@@ -47,7 +50,7 @@
   }
   html { scroll-behavior: smooth; }
   body {
-    font-family: 'Prompt', sans-serif;
+    font-family: system-ui, -apple-system, 'Segoe UI', 'Prompt', sans-serif;
     background: var(--bg-page);
     background-image:
       radial-gradient(ellipse 110% 75% at 100% -20%, rgba(99,102,241,.16), transparent),
@@ -423,6 +426,41 @@
     0%, 100% { transform: rotate(-6deg); }
     50% { transform: rotate(8deg); }
   }
+
+  #app-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99990;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.35);
+    backdrop-filter: blur(4px);
+  }
+  #app-loading-overlay.hidden { display: none !important; }
+  .pk2-overlay-card {
+    background: #fff;
+    border-radius: 1rem;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+    text-align: center;
+    min-width: 220px;
+  }
+  html[data-theme="dark"] .pk2-overlay-card {
+    background: #1e293b;
+    color: #f1f5f9;
+  }
+  .pk2-overlay-spinner {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 3px solid #e2e8f0;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    margin: 0 auto 0.75rem;
+    animation: pk2Spin 0.7s linear infinite;
+  }
+  @keyframes pk2Spin { to { transform: rotate(360deg); } }
+  .pk2-overlay-sub { font-size: 0.875rem; color: #64748b; font-weight: 600; }
 </style>
 </head>
 <body class="text-slate-800 h-screen flex overflow-hidden theme-root">
@@ -472,10 +510,17 @@
             </button>
           </div>
           <div class="mt-5 text-[11px] text-slate-500 text-center">
-            Build: <span id="pk2-build-stamp" class="font-bold text-slate-700">2026-05-31T16:00:00+07:00-tiered-load</span>
+            Build: <span id="pk2-build-stamp" class="font-bold text-slate-700">2026-05-31T18:00:00+07:00-instant-shell</span>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div id="app-loading-overlay" class="hidden" aria-live="polite" aria-busy="true">
+    <div class="pk2-overlay-card">
+      <div class="pk2-overlay-spinner" aria-hidden="true"></div>
+      <p class="pk2-overlay-sub">กำลังซิงค์ข้อมูล...</p>
     </div>
   </div>
 
@@ -856,7 +901,7 @@
       withSuccessHandler: function(fn) { return createRunner(fn, failure); },
       withFailureHandler: function(fn) { return createRunner(success, fn); }
     };
-    var methods = ["authenticateUser","getPublicBootstrap","getDashboardSummaryData","getDashboardData","getDashboardRefreshBundle","getProjectsData","getTrackingData","getClientWarmBundle","getLoginPrewarmBundle","startProjectRenewal","updateProjectStep","completeProjectRenewal","rollbackProjectStep","addNote","toggleNotePin","updateNote","deleteNote","getSettingsPageBundle","saveSettings","addDepartment","deleteDepartment","updateDepartment","getLicenseTypes","saveLicenseType","deleteLicenseType","getUsers","saveUser","suspendUser","changeUserPassword","deleteUser","getNextProjectIdPublic","getRenewalHistory","updateRenewalHistory","deleteRenewalHistory","saveProject","saveCompany","deleteCompany","getCompanies","getInAppNotifications","runDailyAlertsManual","getHistoryLog","getAuditLog","importProjectsBatch","uploadProjectFile","listProjectAttachments","installAlertTriggerPublic","removeAlertTriggerPublic","getDeploymentUrls"];
+    var methods = ["authenticateUser","authenticateAndBootstrap","resumeSessionBundle","getBootstrapMetaBundle","getPublicBootstrap","getDashboardSummaryData","getDashboardData","getDashboardRefreshBundle","getProjectsData","getTrackingData","getClientWarmBundle","getLoginPrewarmBundle","startProjectRenewal","updateProjectStep","completeProjectRenewal","rollbackProjectStep","addNote","toggleNotePin","updateNote","deleteNote","getSettingsPageBundle","saveSettings","addDepartment","deleteDepartment","updateDepartment","getLicenseTypes","saveLicenseType","deleteLicenseType","getUsers","saveUser","suspendUser","changeUserPassword","deleteUser","getNextProjectIdPublic","getRenewalHistory","updateRenewalHistory","deleteRenewalHistory","saveProject","saveCompany","deleteCompany","getCompanies","getInAppNotifications","runDailyAlertsManual","getHistoryLog","getAuditLog","importProjectsBatch","uploadProjectFile","listProjectAttachments","installAlertTriggerPublic","removeAlertTriggerPublic","getDeploymentUrls"];
     methods.forEach(function(m) {
       runner[m] = function() {
         callRpc(m, Array.prototype.slice.call(arguments), success, failure);
@@ -872,8 +917,9 @@
 
 <script>
 const APP_BRAND_NAME = 'License tracker';
-const state = { token: localStorage.getItem('pk2_token') || '', user: null, isAuthenticated: false, settings: {}, departments: [], licenseTypes: [], projects: [], companies: [], users: [], tracking: [], dashboard: { total: 0, processing: 0, warning: 0, expired: 0, urgentTasks: [], chartData: null, upcomingCalendar: [] }, dashboardDetailsLoaded: false, coreLoading: false, projectsLoaded: false, trackingLoaded: false, companiesLoaded: false, settingsPageLoaded: false, usersLoaded: false, listRevision: 0, chartStatus: null, chartDept: null, projectPage: 1, projectPageSize: 10, projectFilterTimer: null, notifyTimerId: null, warmPrefetchTimer: null, warmPrefetchInFlight: false, loginPublicPreloadStarted: false, loginPublicPreloadTimer: null, loginAuthPrewarmTimer: null, loginAuthPrewarmInFlight: false, loginAuthPrewarmToken: '', loginAuthPrewarmData: null, authPreloadKickoffTimer: null, settingsPrefetchInFlight: false, usersPrefetchInFlight: false, notifyPrefetchInFlight: false, notifyPrefetchScheduled: false, resumeSessionInFlight: false, bootstrapInFlight: false, postLoginBundleInFlight: false, dashboardHydrateInFlight: false, dashboardHydrated: false, dashboardSummaryRevalidateInFlight: false, loginFlowStartedAt: 0, lastDashboardSignature: '', projectsInFlight: false, trackingInFlight: false, companiesInFlight: false, dashboardDetailsInFlight: false, postLoginLoadActive: false, postLoginLoadDone: { bootstrap: false, warm: false, settings: false }, postLoginLoadTimeoutId: null, gasWarmupStarted: false };
+const state = { token: localStorage.getItem('pk2_token') || '', user: null, isAuthenticated: false, settings: {}, departments: [], licenseTypes: [], projects: [], companies: [], users: [], tracking: [], dashboard: { total: 0, processing: 0, warning: 0, expired: 0, urgentTasks: [], chartData: null, upcomingCalendar: [] }, dashboardDetailsLoaded: false, coreLoading: false, projectsLoaded: false, trackingLoaded: false, companiesLoaded: false, settingsPageLoaded: false, usersLoaded: false, listRevision: 0, chartStatus: null, chartDept: null, projectPage: 1, projectPageSize: 10, projectFilterTimer: null, notifyTimerId: null, warmPrefetchTimer: null, warmPrefetchInFlight: false, loginPublicPreloadStarted: false, loginPublicPreloadTimer: null, loginAuthPrewarmTimer: null, loginAuthPrewarmInFlight: false, loginAuthPrewarmToken: '', loginAuthPrewarmData: null, authPreloadKickoffTimer: null, settingsPrefetchInFlight: false, usersPrefetchInFlight: false, notifyPrefetchInFlight: false, notifyPrefetchScheduled: false, metaPrefetchInFlight: false, resumeSessionInFlight: false, bootstrapInFlight: false, postLoginBundleInFlight: false, dashboardHydrateInFlight: false, dashboardHydrated: false, dashboardSummaryRevalidateInFlight: false, loginFlowStartedAt: 0, lastDashboardSignature: '', projectsInFlight: false, trackingInFlight: false, companiesInFlight: false, dashboardDetailsInFlight: false, postLoginLoadActive: false, postLoginLoadDone: { bootstrap: false, warm: false, settings: false }, postLoginLoadTimeoutId: null, gasWarmupStarted: false };
 const DASH_SUMMARY_SNAPSHOT_KEY = 'pk2_dash_summary_snapshot_v1';
+const SESSION_SNAPSHOT_KEY = 'pk2_session_snapshot_v1';
 const perf = {
   markStart: function(name) {
     if (window.performance && performance.mark) performance.mark(name + ':start');
@@ -934,26 +980,26 @@ function postLoginLoadHtml_(currentLabel, pct) {
   );
 }
 
-function showPostLoginLoadingSwal_() {
-  if (state.postLoginLoadActive) return;
+function showAppLoadingOverlay_(label) {
+  var el = document.getElementById('app-loading-overlay');
+  if (!el) return;
+  var sub = el.querySelector('.pk2-overlay-sub');
+  if (sub) sub.textContent = label || 'กำลังซิงค์ข้อมูล...';
+  el.classList.remove('hidden');
   state.postLoginLoadActive = true;
-  state.postLoginLoadDone = { bootstrap: false, settings: false };
   if (state.postLoginLoadTimeoutId) clearTimeout(state.postLoginLoadTimeoutId);
   state.postLoginLoadTimeoutId = setTimeout(function () {
     closePostLoginLoadingSwal_(true);
   }, 28000);
-  ensureSwal().then(function () {
-    Swal.fire({
-      html: postLoginLoadHtml_('เริ่มโหลดข้อมูล...', 6),
-      width: 400,
-      padding: '1.25rem 1.5rem 1.5rem',
-      showConfirmButton: false,
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      backdrop: 'rgba(15, 23, 42, 0.45)',
-      customClass: { popup: 'pk2-swal-load-popup' }
-    });
-  });
+}
+
+function hideAppLoadingOverlay_() {
+  var el = document.getElementById('app-loading-overlay');
+  if (el) el.classList.add('hidden');
+}
+
+function showPostLoginLoadingSwal_() {
+  showAppLoadingOverlay_('กำลังซิงค์ข้อมูล...');
 }
 
 function refreshPostLoginLoadingSwal_() {
@@ -991,8 +1037,57 @@ function closePostLoginLoadingSwal_(silent) {
     state.postLoginLoadTimeoutId = null;
   }
   state.postLoginLoadActive = false;
+  hideAppLoadingOverlay_();
   if (typeof Swal !== 'undefined' && Swal.isVisible && Swal.isVisible()) {
     Swal.close();
+  }
+}
+
+function saveSessionSnapshot_() {
+  if (!state.token || !state.user) return;
+  try {
+    localStorage.setItem(
+      SESSION_SNAPSHOT_KEY,
+      JSON.stringify({
+        token: state.token,
+        user: state.user,
+        settings: state.settings || {},
+        departments: state.departments || [],
+        licenseTypes: state.licenseTypes || [],
+        dashboard: {
+          total: state.dashboard.total,
+          processing: state.dashboard.processing,
+          warning: state.dashboard.warning,
+          expired: state.dashboard.expired
+        },
+        ts: Date.now()
+      })
+    );
+  } catch (e) {}
+}
+
+function tryInstantSessionFromCache_() {
+  if (!state.token) return false;
+  try {
+    var raw = localStorage.getItem(SESSION_SNAPSHOT_KEY);
+    if (!raw) return false;
+    var snap = JSON.parse(raw);
+    if (!snap || snap.token !== state.token || !snap.user) return false;
+    if (Date.now() - (snap.ts || 0) > 7 * 86400000) return false;
+    state.user = snap.user;
+    state.settings = snap.settings || {};
+    state.departments = snap.departments || [];
+    state.licenseTypes = snap.licenseTypes || [];
+    state.isAuthenticated = true;
+    state.settingsPageLoaded = true;
+    if (snap.dashboard) {
+      state.dashboard = Object.assign({}, state.dashboard, snap.dashboard);
+      state.dashboardHydrated = true;
+      setDashboardSummarySnapshot_(state.dashboard);
+    }
+    return true;
+  } catch (e) {
+    return false;
   }
 }
 
@@ -1011,11 +1106,20 @@ function pk2Boot() {
   applyAppBranding_();
   initTheme();
   syncSidebarToggleButton_();
-  ensureSwal();
   bindLoginFormEvents_();
   if (state.notifyTimerId) clearInterval(state.notifyTimerId);
   state.notifyTimerId = null;
   if (state.token) {
+    if (tryInstantSessionFromCache_()) {
+      showAppScreen_();
+      setUserUI();
+      renderDepartmentFilter();
+      renderDashboardUI();
+      showAppLoadingOverlay_('กำลังอัปเดตข้อมูล...');
+      scheduleLoginAuthPrewarm_();
+      loadPostLoginBundle_();
+      return;
+    }
     scheduleLoginAuthPrewarm_();
     startSavedSessionResume_(true);
     return;
@@ -1110,8 +1214,7 @@ function scheduleLoginPublicPreload_() {
   if (state.loginPublicPreloadStarted) return;
   state.loginPublicPreloadStarted = true;
   const run = () => {
-    preloadUrlOnce_('https://cdn.jsdelivr.net/npm/sweetalert2@11', 'script', true);
-    preloadUrlOnce_('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css', 'style', true);
+    prefetchUrlOnce_('https://cdn.jsdelivr.net/npm/sweetalert2@11', 'script', true);
     prefetchUrlOnce_('https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap', 'style', true);
     warmupGasConnection_();
   };
@@ -1168,6 +1271,7 @@ function applyPostLoginPack_(pack) {
   if (boot.settings && typeof boot.settings === 'object') state.settingsPageLoaded = true;
   setPostLoginLoadStep_('bootstrap', true);
   if (state.settingsPageLoaded) setPostLoginLoadStep_('settings', true);
+  saveSessionSnapshot_();
   return true;
 }
 
@@ -1182,6 +1286,7 @@ function finishPostLoginUi_() {
   renderDepartmentFilter();
   renderDashboardUI();
   syncPostLoginLoadFromState_();
+  saveSessionSnapshot_();
   closePostLoginLoadingSwal_();
   perf.log('login->dashboardHydrated', Date.now() - (state.loginFlowStartedAt || Date.now()));
 }
@@ -1236,7 +1341,7 @@ function loadPostLoginBundle_(retryAttempt) {
       }
       bootstrapPublic(0);
     })
-    .getLoginPrewarmBundle(state.token);
+    .resumeSessionBundle(state.token);
 }
 
 function scheduleLoginAuthPrewarm_() {
@@ -1252,16 +1357,17 @@ function scheduleLoginAuthPrewarm_() {
         if (!pack || pack.ok !== true || !pack.bootstrap || !pack.bootstrap.user) return;
         storeLoginAuthPrewarmData_(pack);
         if (pack.bootstrap.dashboard) setDashboardSummarySnapshot_(pack.bootstrap.dashboard);
-        if (state.postLoginLoadActive && state.isAuthenticated) {
+        if (state.isAuthenticated) {
           applyPostLoginPack_(pack);
           syncPostLoginLoadFromState_();
         }
+        if (state.postLoginLoadActive) finishPostLoginUi_();
         perf.log('loginAuthPrewarm', perf.markEnd('loginAuthPrewarm', t0));
       })
       .withFailureHandler(function () {
         state.loginAuthPrewarmInFlight = false;
       })
-      .getLoginPrewarmBundle(state.token);
+      .resumeSessionBundle(state.token);
   };
   state.loginAuthPrewarmTimer = setTimeout(run, 0);
 }
@@ -1383,6 +1489,26 @@ function showAppScreen_() {
   return true;
 }
 
+function preloadBootstrapMeta_() {
+  if (!state.token || state.metaPrefetchInFlight) return;
+  if (state.licenseTypes && state.licenseTypes.length > 0) return;
+  state.metaPrefetchInFlight = true;
+  google.script.run
+    .withSuccessHandler(function (meta) {
+      state.metaPrefetchInFlight = false;
+      if (!meta || !Array.isArray(meta.licenseTypes)) return;
+      state.licenseTypes = meta.licenseTypes;
+      renderDepartmentFilter();
+      const settingsEl = document.getElementById('settings');
+      if (settingsEl && settingsEl.classList.contains('active')) renderLicenseTypesSettingsList();
+      saveSessionSnapshot_();
+    })
+    .withFailureHandler(function () {
+      state.metaPrefetchInFlight = false;
+    })
+    .getBootstrapMetaBundle(state.token);
+}
+
 function preloadSettingsBundle_() {
   if (!state.token || state.settingsPrefetchInFlight || state.settingsPageLoaded) return;
   state.settingsPrefetchInFlight = true;
@@ -1469,6 +1595,7 @@ function kickoffAuthPreloads_() {
     var needsDetails = !state.dashboardDetailsLoaded && !state.dashboardDetailsInFlight;
     if (!state.dashboardHydrated) refreshDashboardSummarySWR_();
     if (needsSettings) preloadSettingsBundle_();
+    preloadBootstrapMeta_();
     if (needsProjects) prefetchProjectsBundle_();
     scheduleNotificationsPrefetch_();
     if (needsDetails) {
@@ -1627,6 +1754,16 @@ function startSavedSessionResume_(fromBoot) {
   if (!state.token || state.resumeSessionInFlight) return;
   state.loginFlowStartedAt = Date.now();
   state.resumeSessionInFlight = true;
+  if (tryInstantSessionFromCache_()) {
+    showAppScreen_();
+    setUserUI();
+    renderDepartmentFilter();
+    renderDashboardUI();
+    showAppLoadingOverlay_('กำลังอัปเดตข้อมูล...');
+    scheduleLoginAuthPrewarm_();
+    loadPostLoginBundle_();
+    return;
+  }
   if (fromBoot) {
     state.isAuthenticated = false;
     showLoginScreen_();
@@ -1636,7 +1773,7 @@ function startSavedSessionResume_(fromBoot) {
     setContinueSessionSubmitting_(true);
     showLoginScreen_();
   }
-  showPostLoginLoadingSwal_();
+  showAppLoadingOverlay_('กำลังตรวจสอบเซสชัน...');
   if (applySavedSessionPrewarm_()) {
     syncPostLoginLoadFromState_();
     finishPostLoginUi_();
@@ -1681,36 +1818,41 @@ function submitLoginForm_() {
   showLoginScreen_();
   setLoginSubmitting_(true);
   state.loginFlowStartedAt = Date.now();
+  const snap = getDashboardSummarySnapshot_();
+  if (snap && snap.dashboard) {
+    state.dashboard = Object.assign({}, state.dashboard, snap.dashboard);
+    state.dashboardHydrated = true;
+  }
   google.script.run
     .withSuccessHandler((res) => {
+      setLoginSubmitting_(false);
+      if (!res || !res.token) {
+        showLoginScreen_(normalizeLoginErrorMessage_(new Error('เข้าสู่ระบบไม่สำเร็จ')));
+        return;
+      }
       state.token = res.token;
       localStorage.setItem('pk2_token', res.token);
-      state.user = res.user;
-      state.isAuthenticated = true;
-      setLoginSubmitting_(false);
       syncLoginSessionResumeUI_();
-      setDashboardLoadingState_();
-      const snap = getDashboardSummarySnapshot_();
-      if (snap && snap.dashboard) {
-        state.dashboard = Object.assign({}, state.dashboard, snap.dashboard);
-        state.dashboardHydrated = true;
+      if (res.bootstrap && applyPostLoginPack_({ ok: true, bootstrap: res.bootstrap })) {
+        state.user = res.user || state.user;
+      } else {
+        state.user = res.user;
+        state.isAuthenticated = true;
       }
-      showPostLoginLoadingSwal_();
       showAppScreen_();
       setUserUI();
       renderDepartmentFilter();
       renderDashboardUI();
-      const shellMs = Date.now() - (state.loginFlowStartedAt || Date.now());
-      perf.log('login->shellInteractive', shellMs);
-      scheduleLoginAuthPrewarm_();
-      loadPostLoginBundle_();
+      perf.log('login->shellInteractive', Date.now() - (state.loginFlowStartedAt || Date.now()));
+      finishPostLoginUi_();
+      kickoffAuthPreloads_();
     })
     .withFailureHandler((err) => {
       setLoginSubmitting_(false);
       closePostLoginLoadingSwal_(true);
       showLoginScreen_(normalizeLoginErrorMessage_(err));
     })
-    .authenticateUser(username, password);
+    .authenticateAndBootstrap(username, password);
 }
 
 /** แดชบอร์ดโหลดจาก bootstrap แยกจากแท็บอื่น — ต้องล้างตัวแปรเหล่านี้เมื่อมีข้อมูลใหม่จากเซิร์ฟเวอร์ ไม่ให้แท็บค้างค่าเก่า (โหลดครั้งเดียวแล้วไม่อัปเดต) */
